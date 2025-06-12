@@ -41,7 +41,14 @@ def update_version(new_version):
 def run_command(cmd):
     """執行命令並返回結果"""
     try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
         if result.returncode != 0:
             print(f"❌ 命令執行失敗: {cmd}")
             print(f"錯誤: {result.stderr}")
@@ -54,11 +61,14 @@ def run_command(cmd):
 
 def create_release(version, message=None):
     """建立 Git tag 和推送"""
-    tag_name = f"v{version}"
-
-    # 檢查是否有未提交的變更
+    tag_name = f"v{version}"  # 檢查是否有未提交的變更
     result = subprocess.run(
-        "git status --porcelain", shell=True, capture_output=True, text=True
+        "git status --porcelain",
+        shell=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if result.stdout.strip():
         print("📝 發現未提交的變更，正在提交...")
