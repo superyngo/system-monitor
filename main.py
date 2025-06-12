@@ -14,17 +14,17 @@ System Monitor - Windows 系統監控工具
 """
 
 from typing import Optional
-
+from pathlib import Path
 import sys
 import os
 import time
 import schedule
 import threading
 import tkinter as tk
-from pathlib import Path
 
 # 新增 src 目錄到 Python 路徑
-# sys.path.insert(0, str(Path(__file__).parent / "src"))
+# sys.path.insert(0, str(Path(os.path.abspath(sys.argv[0])).parent))
+
 
 from superyngo_logger import init_logger
 from src.config import settings
@@ -426,7 +426,7 @@ def main():
         logger.info(f"工作目錄: {os.getcwd()}")
 
         # 檢查必要檔案
-        required_dirs = ["src", "assets"]
+        required_dirs = ["assets"]
         for dir_name in required_dirs:
             if not Path(dir_name).exists():
                 logger.error(f"必要目錄不存在: {dir_name}")

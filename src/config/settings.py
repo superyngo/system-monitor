@@ -5,7 +5,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from superyngo_logger import init_logger
 
 # 初始化日誌器
