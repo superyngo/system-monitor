@@ -1,0 +1,103 @@
+name: Build and Release
+
+on:
+  # 當推送 tag 時觸發（手動建立 release tag）
+  push:
+    tags:
+      - "v*"
+
+  # 手動觸發
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g., v1.0.0)"
+        required: true
+        default: "v0.1.0"
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        run: |
+          pip install uv
+
+      - name: Install dependencies
+        run: |
+          uv sync
+
+      - name: Create icon
+        run: |
+          uv run python create_icon.py
+
+      - name: Build executable with Nuitka
+        run: |
+          uv run nuitka --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=assets/icon.ico --include-data-dir=assets=assets --output-filename=SystemMonitor.exe --output-dir=C:/temp/build --show-progress --show-memory --remove-output --assume-yes-for-downloads --plugin-enable=tk-inter --include-package=psutil --include-package=gspread --include-package=google --include-package=pystray --include-package=PIL --include-package=superyngo_logger --include-package=schedule --include-package=requests main.py
+
+      - name: Create release package
+        run: |
+          mkdir release
+          copy dist\SystemMonitor.exe release\
+          copy config.example.json release\
+          copy README.md release\
+
+          # 建立壓縮檔
+          Compress-Archive -Path release\* -DestinationPath SystemMonitor-${{ github.ref_name }}.zip
+
+      - name: Get version from tag or input
+        id: version
+        run: |
+          if ("${{ github.event_name }}" -eq "push") {
+            echo "version=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "version=${{ github.event.inputs.version }}" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          release_name: System Monitor ${{ steps.version.outputs.version }}
+          body: |
+            ## System Monitor ${{ steps.version.outputs.version }}
+
+            ### 功能特色
+            - 📊 即時監控 CPU、RAM 使用率
+            - 🌐 網路使用量統計  
+            - 📁 指定資料夾內容監控
+            - ☁️ 自動上傳數據到 Google Sheets
+            - 🎯 系統托盤常駐程式
+            - ⚙️ 簡易 GUI 設定介面
+
+            ### 安裝說明
+            1. 下載 `SystemMonitor-${{ steps.version.outputs.version }}.zip`
+            2. 解壓縮到任意資料夾
+            3. 將 `config.example.json` 複製為 `config.json` 並設定參數
+            4. 執行 `SystemMonitor.exe`
+
+            ### 變更日誌
+            - 請查看 commit 歷史了解詳細變更
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./SystemMonitor-${{ steps.version.outputs.version }}.zip
+          asset_name: SystemMonitor-${{ steps.version.outputs.version }}.zip
+          asset_content_type: application/zip

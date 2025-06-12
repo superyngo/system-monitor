@@ -1,0 +1,36 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Nuitka build artifacts
+*.build/
+*.dist/
+*.exe
+*.pyd
+*.so
+
+# Configuration files with sensitive data
+config.json
+credentials.json
+*.key
+
+# Log files
+*.log
+logs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db

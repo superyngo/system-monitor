@@ -1,0 +1,49 @@
+[project]
+name = "system-monitor"
+version = "0.1.0"
+description = "Windows system monitoring tool with Google Sheets integration"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "psutil>=5.9.0",
+    "gspread>=5.12.0",
+    "google-auth>=2.23.0",
+    "pystray>=0.19.4",
+    "pillow>=10.0.0",
+    "superyngo-logger>=0.0.2",
+    "schedule>=1.2.0",
+    "requests>=2.31.0",
+    "olefile>=0.47",
+]
+
+[project.optional-dependencies]
+build = [
+    "nuitka>=2.0.0",
+    "ordered-set>=4.1.0",
+]
+
+[tool.nuitka]
+main = "main.py"
+standalone = true
+onefile = false
+windows-console-mode = "disable"
+windows-icon-from-ico = "assets/icon.ico"
+include-data-dir = "assets=assets"
+output-filename = "SystemMonitor.exe"
+show-progress = true
+show-memory = true
+remove-output = true
+assume-yes-for-downloads = true
+# 指定使用 MSVC 編譯器
+clang = false
+mingw64 = false
+msvc = true
+# 防毒軟體友好選項
+no-deployment-flag = "self-execution"
+windows-uac-admin = false
+windows-uac-uiaccess = false
+
+[dependency-groups]
+dev = [
+    "nuitka>=2.7.7",
+]

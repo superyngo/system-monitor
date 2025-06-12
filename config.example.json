@@ -1,0 +1,26 @@
+{
+  "google_sheets": {
+    "credentials_file": "",
+    "spreadsheet_url": "",
+    "worksheet_name": "System Monitor"
+  },
+  "monitoring": {
+    "interval_minutes": 5,
+    "monitor_directories": [],
+    "enable_cpu_monitoring": true,
+    "enable_ram_monitoring": true,
+    "enable_internet_monitoring": true,
+    "enable_directory_monitoring": true
+  },
+  "ui": {
+    "show_notifications": true,
+    "minimize_to_tray": true,
+    "start_minimized": false
+  },
+  "logging": {
+    "log_level": "INFO",
+    "log_file": "system_monitor.log",
+    "max_log_size_mb": 10,
+    "backup_count": 5
+  }
+}
