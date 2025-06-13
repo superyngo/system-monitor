@@ -41,7 +41,7 @@ jobs:
 
       - name: Build executable with Nuitka
         run: |
-          uv run nuitka --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=assets/icon.ico --include-data-dir=assets=assets --output-filename=SystemMonitor.exe --output-dir=C:/temp/build --show-progress --show-memory --remove-output --assume-yes-for-downloads --plugin-enable=tk-inter --include-package=psutil --include-package=gspread --include-package=google --include-package=pystray --include-package=PIL --include-package=superyngo_logger --include-package=schedule --include-package=requests main.py
+          uv run nuitka --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=assets/icon.ico --include-data-dir=assets=assets --output-filename=SystemMonitor.exe --output-dir=dist --show-progress --show-memory --remove-output --assume-yes-for-downloads --plugin-enable=tk-inter --include-package=psutil --include-package=gspread --include-package=google --include-package=pystray --include-package=PIL --include-package=superyngo_logger --include-package=schedule --include-package=requests main.py
 
       - name: Create release package
         run: |
