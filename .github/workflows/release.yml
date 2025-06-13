@@ -66,10 +66,10 @@ jobs:
           mkdir release
 
           # 尋找編譯好的執行檔
-          `$exeFile = Get-ChildItem -Name "SystemMonitor.exe" -Recurse | Select-Object -First 1
-          if (`$exeFile) {
-            Write-Host "Found SystemMonitor.exe at: `$exeFile"
-            Copy-Item `$exeFile release\
+          $exeFile = Get-ChildItem -Name "SystemMonitor.exe" -Recurse | Select-Object -First 1
+          if ($exeFile) {
+            Write-Host "Found SystemMonitor.exe at: $exeFile"
+            Copy-Item $exeFile release\
           } else {
             Write-Host "SystemMonitor.exe not found!"
             exit 1
@@ -79,15 +79,15 @@ jobs:
           copy README.md release\
 
           # 建立壓縮檔
-          Compress-Archive -Path release\* -DestinationPath SystemMonitor-`${{ github.ref_name }}.zip
+          Compress-Archive -Path release\* -DestinationPath SystemMonitor-${{ github.ref_name }}.zip
 
       - name: Get version from tag or input
         id: version
         run: |
-          if ("`${{ github.event_name }}" -eq "push") {
-            echo "version=`${{ github.ref_name }}" >> `$env:GITHUB_OUTPUT
+          if ("${{ github.event_name }}" -eq "push") {
+            echo "version=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
           } else {
-            echo "version=`${{ github.event.inputs.version }}" >> `$env:GITHUB_OUTPUT
+            echo "version=${{ github.event.inputs.version }}" >> $env:GITHUB_OUTPUT
           }
 
       - name: Create Release
@@ -126,6 +126,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./SystemMonitor-`${{ steps.version.outputs.version }}.zip
-          asset_name: SystemMonitor-`${{ steps.version.outputs.version }}.zip
+          asset_path: ./SystemMonitor-${{ steps.version.outputs.version }}.zip
+          asset_name: SystemMonitor-${{ steps.version.outputs.version }}.zip
           asset_content_type: application/zip

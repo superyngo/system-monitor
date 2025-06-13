@@ -1,0 +1,166 @@
+name: Test Build and Release
+
+on:
+  # 手動觸發
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Test release version (e.g., test-v1.0.0)"
+        required: true
+        default: "test-v0.1.0"
+
+  # 當推送 test- 開頭的 tag 時觸發
+  push:
+    tags:
+      - "test-*"
+
+jobs:
+  test-build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        run: |
+          pip install uv
+
+      - name: Install dependencies
+        run: |
+          uv sync
+
+      - name: Create test icon (if not exists)
+        run: |
+          if (-not (Test-Path "assets/icon.ico")) {
+            Write-Host "Icon not found, creating new icon..."
+            uv run python create_icon.py
+          } else {
+            Write-Host "Icon already exists, skipping creation..."
+          }      - name: Create fake dist directory and executable (for testing)
+        run: |
+          Write-Host "Creating fake dist directory and executable for testing..."
+          New-Item -ItemType Directory -Path "dist" -Force
+          
+          # 建立假的 SystemMonitor.exe 檔案（實際上是文字檔案）
+          $fakeExeContent = "This is a fake SystemMonitor.exe for testing purposes.`nBuild Date: $(Get-Date)`nVersion: Test Build`nPlatform: Windows"
+          $fakeExeContent | Out-File -FilePath "dist\SystemMonitor.exe" -Encoding UTF8
+          
+          Write-Host "Fake executable created successfully at dist\SystemMonitor.exe"
+          Write-Host "File size: $((Get-Item 'dist\SystemMonitor.exe').Length) bytes"
+
+      - name: Run test script
+        run: |
+          uv run python test_release.py
+
+      - name: Check build output
+        run: |
+          Write-Host "Current directory contents:"
+          Get-ChildItem -Recurse | Select-Object FullName
+          Write-Host "Checking dist directory:"
+          if (Test-Path "dist") {
+            Get-ChildItem -Path "dist" -Recurse | Select-Object FullName
+          } else {
+            Write-Host "dist directory does not exist"
+          }
+          Write-Host "Looking for SystemMonitor.exe:"
+          Get-ChildItem -Name "SystemMonitor.exe" -Recurse -ErrorAction SilentlyContinue
+
+      - name: Create release package
+        run: |
+          mkdir release
+
+          # 尋找編譯好的執行檔
+          $exeFile = Get-ChildItem -Name "SystemMonitor.exe" -Recurse | Select-Object -First 1
+          if ($exeFile) {
+            Write-Host "Found SystemMonitor.exe at: $exeFile"
+            Copy-Item $exeFile release\
+          } else {
+            Write-Host "SystemMonitor.exe not found!"
+            exit 1
+          }
+
+          copy config.example.json release\
+          copy README.md release\
+
+          # 建立壓縮檔
+          Compress-Archive -Path release\* -DestinationPath SystemMonitor-${{ github.ref_name }}.zip
+
+      - name: Verify release package
+        run: |
+          Write-Host "Checking release package contents:"
+          if (Test-Path "SystemMonitor-${{ github.ref_name }}.zip") {
+            $zipSize = (Get-Item "SystemMonitor-${{ github.ref_name }}.zip").Length
+            Write-Host "ZIP file size: $zipSize bytes"
+            
+            # 解壓縮並檢查內容
+            Expand-Archive -Path "SystemMonitor-${{ github.ref_name }}.zip" -DestinationPath "verify_extract" -Force
+            Write-Host "ZIP contents:"
+            Get-ChildItem -Path "verify_extract" -Recurse | Select-Object FullName, Length
+          } else {
+            Write-Host "ZIP file not found!"
+            exit 1
+          }
+
+      - name: Get version from tag or input
+        id: version
+        run: |
+          if ("${{ github.event_name }}" -eq "push") {
+            echo "version=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "version=${{ github.event.inputs.version }}" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Create Test Release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          release_name: System Monitor Test Release ${{ steps.version.outputs.version }}
+          body: |
+            ## System Monitor Test Release ${{ steps.version.outputs.version }}
+
+            ⚠️ **這是測試版本，僅用於驗證發布流程** ⚠️
+
+            ### 測試項目
+            - ✅ 假的編譯過程（建立假執行檔）
+            - ✅ 檔案複製流程
+            - ✅ 壓縮打包流程
+            - ✅ Release 建立流程
+
+            ### 內容說明
+            - SystemMonitor.exe: 測試用假執行檔（文字檔案）
+            - config.example.json: 設定檔範例
+            - README.md: 說明文件
+
+            ### 注意事項
+            此版本僅供測試用途，不包含實際可執行的程式。
+          draft: false
+          prerelease: true
+
+      - name: Upload Test Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./SystemMonitor-${{ steps.version.outputs.version }}.zip
+          asset_name: SystemMonitor-${{ steps.version.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Test completion summary
+        run: |
+          Write-Host "===== 測試完成摘要 ====="
+          Write-Host "✅ 假執行檔建立成功"
+          Write-Host "✅ 檔案複製流程正常"
+          Write-Host "✅ 壓縮打包流程正常"
+          Write-Host "✅ Release 建立流程正常"
+          Write-Host "✅ 檔案上傳流程正常"
+          Write-Host "========================"
