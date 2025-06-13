@@ -71,7 +71,9 @@ jobs:
             Write-Host "dist directory does not exist"
           }
           Write-Host "Looking for SystemMonitor.exe:"
-          Get-ChildItem -Name "SystemMonitor.exe" -Recurse -ErrorAction SilentlyContinue      - name: Create release package
+          Get-ChildItem -Name "SystemMonitor.exe" -Recurse -ErrorAction SilentlyContinue
+
+      - name: Create release package
         run: |
           mkdir release
 
