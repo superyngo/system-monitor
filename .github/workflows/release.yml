@@ -46,45 +46,31 @@ jobs:
 
       - name: Build executable with Nuitka
         run: |
-          uv run nuitka --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=assets/icon.ico --include-data-dir=assets=assets --output-filename=SystemMonitor.exe --output-dir=dist --show-progress --show-memory --remove-output --assume-yes-for-downloads --plugin-enable=tk-inter --include-package=psutil --include-package=gspread --include-package=google --include-package=pystray --include-package=PIL --include-package=superyngo_logger --include-package=schedule --include-package=requests main.py
+          uv run nuitka --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=assets/icon.ico --include-data-dir=assets=assets --output-filename=SystemMonitor.exe --show-progress --show-memory --remove-output --assume-yes-for-downloads --plugin-enable=tk-inter --include-package=psutil --include-package=gspread --include-package=google --include-package=pystray --include-package=PIL --include-package=superyngo_logger --include-package=schedule --include-package=requests main.py
 
-      - name: Check build output
-        run: |
-          Write-Host "Current directory contents:"
-          Get-ChildItem -Recurse | Select-Object FullName
-          Write-Host "Checking dist directory:"
-          if (Test-Path "dist") {
-            Get-ChildItem -Path "dist" -Recurse | Select-Object FullName
-          } else {
-            Write-Host "dist directory does not exist"
-          }
-          Write-Host "Looking for SystemMonitor.exe:"
-          Get-ChildItem -Name "SystemMonitor.exe" -Recurse -ErrorAction SilentlyContinue
+      # - name: Check build output
+      #   run: |
+      #     Write-Host "Current directory contents:"
+      #     Get-ChildItem -Recurse | Select-Object FullName
+      #     Write-Host "Checking dist directory:"
+      #     if (Test-Path "dist") {
+      #       Get-ChildItem -Path "dist" -Recurse | Select-Object FullName
+      #     } else {
+      #       Write-Host "dist directory does not exist"
+      #     }
+      #     Write-Host "Looking for SystemMonitor.exe:"
+      #     Get-ChildItem -Name "SystemMonitor.exe" -Recurse -ErrorAction SilentlyContinue
 
       - name: Create release package
         run: |
           mkdir release
-
-          # 尋找編譯好的執行檔
-          $exeFile = Get-ChildItem -Name "SystemMonitor.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($exeFile) {
-            Write-Host "Found SystemMonitor.exe at: $exeFile"
-            $fullPath = Get-ChildItem -Path $exeFile -Recurse | Select-Object -First 1 -ExpandProperty FullName
-            Write-Host "Full path: $fullPath"
-            Copy-Item $fullPath release\
+          # 移動 Nuitka 建構目錄到 release 資料夾
+          if (Test-Path "dist") {
+            robocopy "dist" "release\" /E
           } else {
-            Write-Host "SystemMonitor.exe not found! Searching in all locations:"
-            Get-ChildItem -Recurse -Filter "*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found .exe file: $($_.FullName)" }
-            
-            # 備用方案：直接從 dist 目錄複製
-            if (Test-Path "dist\SystemMonitor.exe") {
-              Write-Host "Using SystemMonitor.exe from dist directory"
-              Copy-Item "dist\SystemMonitor.exe" release\
-            } else {
-              Write-Host "SystemMonitor.exe not found in any location!"
-              exit 1
-            }
+            Write-Host "Warning: dist directory not found"
           }
+
 
           copy config.example.json release\
           copy README.md release\
