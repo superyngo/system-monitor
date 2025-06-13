@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 測試發布流程的 Python 腳本
 用於驗證檔案創建、複製和打包等步驟
@@ -10,67 +11,83 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
+# 設置標準輸出編碼為 UTF-8，解決 GitHub Actions Windows 環境編碼問題
+if sys.platform == "win32":
+    os.environ["PYTHONIOENCODING"] = "utf-8"
+
 
 def log_info(message):
     """輸出信息日誌"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[INFO] {timestamp} - {message}")
+    try:
+        print(f"[INFO] {timestamp} - {message}")
+    except UnicodeEncodeError:
+        # 如果仍有編碼問題，使用英文替代
+        print(
+            f"[INFO] {timestamp} - {message.encode('ascii', 'replace').decode('ascii')}"
+        )
 
 
 def log_error(message):
     """輸出錯誤日誌"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[ERROR] {timestamp} - {message}")
+    try:
+        print(f"[ERROR] {timestamp} - {message}")
+    except UnicodeEncodeError:
+        # 如果仍有編碼問題，使用英文替代
+        print(
+            f"[ERROR] {timestamp} - {message.encode('ascii', 'replace').decode('ascii')}"
+        )
 
 
-def check_file_exists(file_path, description="檔案"):
+def check_file_exists(file_path, description="File"):
     """檢查檔案是否存在"""
     if os.path.exists(file_path):
         size = os.path.getsize(file_path)
-        log_info(f"✅ {description} 存在: {file_path} (大小: {size} bytes)")
+        log_info(f"✅ {description} exists: {file_path} (size: {size} bytes)")
         return True
     else:
-        log_error(f"❌ {description} 不存在: {file_path}")
+        log_error(f"❌ {description} not found: {file_path}")
         return False
 
 
 def test_dist_directory():
-    """測試 dist 目錄和執行檔"""
-    log_info("開始測試 dist 目錄...")
+    """Test dist directory and executable"""
+    log_info("Starting dist directory test...")
 
     dist_path = Path("dist")
     exe_path = dist_path / "SystemMonitor.exe"
 
-    # 檢查 dist 目錄
+    # Check dist directory
     if not dist_path.exists():
-        log_error("dist 目錄不存在")
+        log_error("dist directory does not exist")
         return False
 
-    log_info(f"✅ dist 目錄存在: {dist_path.absolute()}")
+    log_info(f"✅ dist directory exists: {dist_path.absolute()}")
 
-    # 檢查執行檔
+    # Check executable
     if not check_file_exists(exe_path, "SystemMonitor.exe"):
         return False
 
-    # 讀取並顯示假執行檔內容
+    # Read and display fake executable content
     try:
         with open(exe_path, "r", encoding="utf-8") as f:
             content = f.read()
-        log_info(f"假執行檔內容:\n{content}")
+        log_info(f"Fake executable content:\n{content}")
     except Exception as e:
-        log_error(f"無法讀取假執行檔: {e}")
+        log_error(f"Cannot read fake executable: {e}")
         return False
 
     return True
 
 
 def test_required_files():
-    """測試必要檔案是否存在"""
-    log_info("檢查必要檔案...")
+    """Test if required files exist"""
+    log_info("Checking required files...")
 
     required_files = [
-        ("config.example.json", "設定檔範例"),
-        ("README.md", "說明文件"),
+        ("config.example.json", "Config example"),
+        ("README.md", "Documentation"),
     ]
 
     all_files_exist = True
@@ -82,18 +99,18 @@ def test_required_files():
 
 
 def simulate_file_operations():
-    """模擬檔案操作過程"""
-    log_info("模擬檔案複製和打包操作...")
+    """Simulate file operations process"""
+    log_info("Simulating file copy and packaging operations...")
 
-    # 建立測試 release 目錄
+    # Create test release directory
     release_dir = Path("test_release")
     if release_dir.exists():
         shutil.rmtree(release_dir)
 
     release_dir.mkdir()
-    log_info(f"✅ 建立測試目錄: {release_dir.absolute()}")
+    log_info(f"✅ Created test directory: {release_dir.absolute()}")
 
-    # 模擬複製檔案
+    # Simulate file copying
     files_to_copy = [
         ("dist/SystemMonitor.exe", "SystemMonitor.exe"),
         ("config.example.json", "config.example.json"),
@@ -106,47 +123,47 @@ def simulate_file_operations():
 
         if src_path.exists():
             shutil.copy2(src_path, dst_path)
-            log_info(f"✅ 複製檔案: {src} -> {dst_path}")
+            log_info(f"✅ Copied file: {src} -> {dst_path}")
         else:
-            log_error(f"❌ 來源檔案不存在: {src}")
+            log_error(f"❌ Source file not found: {src}")
             return False
 
-    # 檢查複製結果
-    log_info("檢查複製結果:")
+    # Check copy results
+    log_info("Checking copy results:")
     for item in release_dir.iterdir():
         size = item.stat().st_size if item.is_file() else 0
         log_info(f"  - {item.name} ({size} bytes)")
 
-    # 清理測試目錄
+    # Clean up test directory
     shutil.rmtree(release_dir)
-    log_info(f"✅ 清理測試目錄: {release_dir}")
+    log_info(f"✅ Cleaned up test directory: {release_dir}")
 
     return True
 
 
 def test_environment():
-    """測試環境資訊"""
-    log_info("測試環境資訊:")
-    log_info(f"  - Python 版本: {sys.version}")
-    log_info(f"  - 作業系統: {os.name}")
-    log_info(f"  - 當前工作目錄: {os.getcwd()}")
-    log_info(f"  - 腳本路徑: {__file__}")
+    """Test environment information"""
+    log_info("Test environment information:")
+    log_info(f"  - Python version: {sys.version}")
+    log_info(f"  - Operating system: {os.name}")
+    log_info(f"  - Current working directory: {os.getcwd()}")
+    log_info(f"  - Script path: {__file__}")
 
 
 def main():
-    """主函數"""
+    """Main function"""
     log_info("=" * 50)
-    log_info("開始測試發布流程")
+    log_info("Starting release process test")
     log_info("=" * 50)
 
-    # 測試環境
+    # Test environment
     test_environment()
 
-    # 執行各項測試
+    # Execute tests
     tests = [
-        ("測試 dist 目錄和執行檔", test_dist_directory),
-        ("測試必要檔案", test_required_files),
-        ("模擬檔案操作", simulate_file_operations),
+        ("Test dist directory and executable", test_dist_directory),
+        ("Test required files", test_required_files),
+        ("Simulate file operations", simulate_file_operations),
     ]
 
     all_passed = True
@@ -155,21 +172,19 @@ def main():
         try:
             result = test_func()
             if result:
-                log_info(f"✅ {test_name} 通過")
+                log_info(f"✅ {test_name} passed")
             else:
-                log_error(f"❌ {test_name} 失敗")
+                log_error(f"❌ {test_name} failed")
                 all_passed = False
         except Exception as e:
-            log_error(f"❌ {test_name} 發生異常: {e}")
-            all_passed = False
-
-    # 總結
+            log_error(f"❌ {test_name} exception: {e}")
+            all_passed = False  # Summary
     log_info("\n" + "=" * 50)
     if all_passed:
-        log_info("🎉 所有測試通過！發布流程準備就緒。")
+        log_info("🎉 All tests passed! Release process is ready.")
         sys.exit(0)
     else:
-        log_error("❌ 部分測試失敗，請檢查上述錯誤。")
+        log_error("❌ Some tests failed, please check the errors above.")
         sys.exit(1)
 
 
