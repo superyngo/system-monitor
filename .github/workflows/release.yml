@@ -66,13 +66,24 @@ jobs:
           mkdir release
 
           # 尋找編譯好的執行檔
-          $exeFile = Get-ChildItem -Name "SystemMonitor.exe" -Recurse | Select-Object -First 1
+          $exeFile = Get-ChildItem -Name "SystemMonitor.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($exeFile) {
             Write-Host "Found SystemMonitor.exe at: $exeFile"
-            Copy-Item $exeFile release\
+            $fullPath = Get-ChildItem -Path $exeFile -Recurse | Select-Object -First 1 -ExpandProperty FullName
+            Write-Host "Full path: $fullPath"
+            Copy-Item $fullPath release\
           } else {
-            Write-Host "SystemMonitor.exe not found!"
-            exit 1
+            Write-Host "SystemMonitor.exe not found! Searching in all locations:"
+            Get-ChildItem -Recurse -Filter "*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found .exe file: $($_.FullName)" }
+            
+            # 備用方案：直接從 dist 目錄複製
+            if (Test-Path "dist\SystemMonitor.exe") {
+              Write-Host "Using SystemMonitor.exe from dist directory"
+              Copy-Item "dist\SystemMonitor.exe" release\
+            } else {
+              Write-Host "SystemMonitor.exe not found in any location!"
+              exit 1
+            }
           }
 
           copy config.example.json release\
@@ -80,6 +91,22 @@ jobs:
 
           # 建立壓縮檔
           Compress-Archive -Path release\* -DestinationPath SystemMonitor-${{ github.ref_name }}.zip
+
+      - name: Verify release package
+        run: |
+          Write-Host "Checking release package contents:"
+          if (Test-Path "SystemMonitor-${{ github.ref_name }}.zip") {
+            $zipSize = (Get-Item "SystemMonitor-${{ github.ref_name }}.zip").Length
+            Write-Host "ZIP file size: $zipSize bytes"
+            
+            # 解壓縮並檢查內容
+            Expand-Archive -Path "SystemMonitor-${{ github.ref_name }}.zip" -DestinationPath "verify_extract" -Force
+            Write-Host "ZIP contents:"
+            Get-ChildItem -Path "verify_extract" -Recurse | Select-Object FullName, Length
+          } else {
+            Write-Host "ZIP file not found!"
+            exit 1
+          }
 
       - name: Get version from tag or input
         id: version
