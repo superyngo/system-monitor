@@ -35,31 +35,59 @@ jobs:
         run: |
           uv sync
 
-      - name: Create icon
+      - name: Create icon (if not exists)
         run: |
-          uv run python create_icon.py
+          if (-not (Test-Path "assets/icon.ico")) {
+            Write-Host "Icon not found, creating new icon..."
+            uv run python create_icon.py
+          } else {
+            Write-Host "Icon already exists, skipping creation..."
+          }
 
       - name: Build executable with Nuitka
         run: |
           uv run nuitka --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=assets/icon.ico --include-data-dir=assets=assets --output-filename=SystemMonitor.exe --output-dir=dist --show-progress --show-memory --remove-output --assume-yes-for-downloads --plugin-enable=tk-inter --include-package=psutil --include-package=gspread --include-package=google --include-package=pystray --include-package=PIL --include-package=superyngo_logger --include-package=schedule --include-package=requests main.py
 
+      - name: Check build output
+        run: |
+          Write-Host "Current directory contents:"
+          Get-ChildItem -Recurse | Select-Object FullName
+          Write-Host "Checking dist directory:"
+          if (Test-Path "dist") {
+            Get-ChildItem -Path "dist" -Recurse | Select-Object FullName
+          } else {
+            Write-Host "dist directory does not exist"
+          }
+          Write-Host "Looking for SystemMonitor.exe:"
+          Get-ChildItem -Name "SystemMonitor.exe" -Recurse -ErrorAction SilentlyContinue
+
       - name: Create release package
         run: |
           mkdir release
-          copy dist\SystemMonitor.exe release\
+
+          # 尋找編譯好的執行檔
+          `$exeFile = Get-ChildItem -Name "SystemMonitor.exe" -Recurse | Select-Object -First 1
+          if (`$exeFile) {
+            Write-Host "Found SystemMonitor.exe at: `$exeFile"
+            Copy-Item `$exeFile release\
+          } else {
+            Write-Host "SystemMonitor.exe not found!"
+            exit 1
+          }
+
           copy config.example.json release\
           copy README.md release\
 
           # 建立壓縮檔
-          Compress-Archive -Path release\* -DestinationPath SystemMonitor-${{ github.ref_name }}.zip
+          Compress-Archive -Path release\* -DestinationPath SystemMonitor-`${{ github.ref_name }}.zip
 
       - name: Get version from tag or input
         id: version
         run: |
-          if ("${{ github.event_name }}" -eq "push") {
-            echo "version=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
+          if ("`${{ github.event_name }}" -eq "push") {
+            echo "version=`${{ github.ref_name }}" >> `$env:GITHUB_OUTPUT
           } else {
-            echo "version=${{ github.event.inputs.version }}" >> $env:GITHUB_OUTPUT
+            echo "version=`${{ github.event.inputs.version }}" >> `$env:GITHUB_OUTPUT
           }
 
       - name: Create Release
@@ -82,10 +110,10 @@ jobs:
             - ⚙️ 簡易 GUI 設定介面
 
             ### 安裝說明
-            1. 下載 `SystemMonitor-${{ steps.version.outputs.version }}.zip`
+            1. 下載 SystemMonitor-${{ steps.version.outputs.version }}.zip
             2. 解壓縮到任意資料夾
-            3. 將 `config.example.json` 複製為 `config.json` 並設定參數
-            4. 執行 `SystemMonitor.exe`
+            3. 將 config.example.json 複製為 config.json 並設定參數
+            4. 執行 SystemMonitor.exe
 
             ### 變更日誌
             - 請查看 commit 歷史了解詳細變更
@@ -98,6 +126,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./SystemMonitor-${{ steps.version.outputs.version }}.zip
-          asset_name: SystemMonitor-${{ steps.version.outputs.version }}.zip
+          asset_path: ./SystemMonitor-`${{ steps.version.outputs.version }}.zip
+          asset_name: SystemMonitor-`${{ steps.version.outputs.version }}.zip
           asset_content_type: application/zip
