@@ -42,15 +42,17 @@ jobs:
             uv run python create_icon.py
           } else {
             Write-Host "Icon already exists, skipping creation..."
-          }      - name: Create fake dist directory and executable (for testing)
+          }
+
+      - name: Create fake dist directory and executable (for testing)
         run: |
           Write-Host "Creating fake dist directory and executable for testing..."
           New-Item -ItemType Directory -Path "dist" -Force
-          
+
           # 建立假的 SystemMonitor.exe 檔案（實際上是文字檔案）
           $fakeExeContent = "This is a fake SystemMonitor.exe for testing purposes.`nBuild Date: $(Get-Date)`nVersion: Test Build`nPlatform: Windows"
           $fakeExeContent | Out-File -FilePath "dist\SystemMonitor.exe" -Encoding UTF8
-          
+
           Write-Host "Fake executable created successfully at dist\SystemMonitor.exe"
           Write-Host "File size: $((Get-Item 'dist\SystemMonitor.exe').Length) bytes"
 
